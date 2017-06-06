@@ -14,7 +14,8 @@ int main()
     util::Logger::setName( "Main log", "log.txt" );
     
     xnb::File file;
-    if ( !file.loadFromFile( "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Stardew Valley\\Content\\Data\\eventConditions.xnb" ) )
+    if ( !file.loadFromFile( "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Stardew Valley\\Content\\LooseSprites\\font_bold.xnb" ) )
+    //if ( !file.loadFromFile( "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Stardew Valley\\Content\\Data\\eventConditions.xnb" ) )
     //if ( !file.loadFromFile( "C:\\Users\\Chase\\Downloads\\alisci01-xnbdecompressor-26ea1b2f21fc\\alisci01-xnbdecompressor-26ea1b2f21fc\\bin\\Debug\\StardewContentDecompressed\\Characters\\Penny.xnb" ) )
     //if ( !file.loadFromFile( "C:\\Users\\Chase\\Downloads\\alisci01-xnbdecompressor-26ea1b2f21fc\\alisci01-xnbdecompressor-26ea1b2f21fc\\bin\\Debug\\StardewContentDecompressed\\Maps\\Farm.xnb" ) )
     //if ( !file.loadFromFile( "C:\\Users\\Chase\\Downloads\\alisci01-xnbdecompressor-26ea1b2f21fc\\alisci01-xnbdecompressor-26ea1b2f21fc\\bin\\Debug\\StardewContentDecompressed\\Data\\ObjectInformation.xnb" ) )

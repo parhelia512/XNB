@@ -10,109 +10,27 @@
 #include "xnb/ITypeReader.hpp"
 #include "xnb/Util.hpp"
 
-extern "C"
-{/*
-    __declspec(dllimport)void lzx_free_compressor(void *_c);
-    __declspec(dllimport)size_t lzx_compress(const void * in, size_t in_nbytes, void * out, size_t out_nbytes_avail, void * _c);
-    __declspec(dllimport)int lzx_create_compressor(size_t max_bufsize, unsigned compression_level, bool destructive, void **c_ret);
-    __declspec(dllimport)void lzx_free_decompressor(void *_d);
-    __declspec(dllimport)int lzx_create_decompressor(size_t max_block_size, void **d_ret);
-    __declspec(dllimport)int lzx_decompress(const void * compressed_data, size_t compressed_size, void * uncompressed_data, size_t uncompressed_size, void * _d);
-    __declspec(dllimport) const char* LZX_ERROR_THING;*/
-    
-    #include "mspack.h"
-    #include "system.h"
-    #include "lzx.h"
-}
+#include "Lzx.hpp"
 
 namespace
 {
-    struct MyFile : mspack_file
-    {
-        std::istream* const in = nullptr;
-        std::ostream* const out =  nullptr;
-        
-        MyFile( std::istream* const stream )
-        :   in( stream )
-        {
-        }
-        
-        MyFile( std::ostream* const stream )
-        :   out( stream )
-        {
-        }
-        
-        MyFile( std::iostream* const stream )
-        :   in( stream ), out( stream )
-        {
-        }
-    };
-    
-    int myRead( mspack_file* file_, void* buffer, int bytes )
-    {
-        auto file = static_cast< MyFile* >( file_ );
-        file->in->read( static_cast< char* >( buffer ), bytes );
-        if ( file->in->eof() )
-            return 0;
-        if ( !( * file->in ) )
-            return -1;
-        return file->in->gcount();
-    }
-    
-    int myWrite( mspack_file* file_, void* buffer, int bytes )
-    {
-        auto file = static_cast< MyFile* >( file_ );
-        file->out->write( static_cast< char* >( buffer ), bytes );
-        if ( !( * file->out ) )
-            return -1;
-        return bytes;
-    }
-    
-    void* myAlloc( mspack_system* self, size_t bytes )
-    {
-        return std::malloc( bytes );
-    }
-    
-    void myFree( void* ptr )
-    {
-        std::free( ptr );
-    }
-    
-    void myCopy( void* src, void* dest, std::size_t bytes )
-    {
-        // error: 'memcpy' is not a member of 'std'|
-        //  suggested alternative: 'memcpy'
-        // What?
-        memcpy( src, dest, bytes );
-    }
-    
-    struct mspack_system mySystem =
-    {
-        nullptr, // open, not needed
-        nullptr, // close, not needed
-        myRead,
-        myWrite,
-        nullptr, // seek, not needed
-        nullptr, // tell, not needed
-        nullptr, // message, not needed
-        myAlloc,
-        myFree,
-        myCopy,
-        nullptr // Just a null pointer
-    };
-    
     std::string decompress( std::istream& in, std::size_t compressed, std::size_t decompressed )
     {
-        std::ostringstream out;
-        MyFile inf( &in ), outf( &out );
+        std::stringstream out;
         
         in.exceptions( std::istream::goodbit );
         
         try
         {
-            std::cout << "Starting decompression " << in.tellg() << std::endl;
+            lzx::LzxDecoder dec( 16 );
+            int x = in.tellg();
+            while ( in.tellg() - 14 < compressed )
             {
+                in.seekg( x );
+                //std::cout << "presize:" << in.tellg() << std::endl;
+                
                 sf::Uint8 a = in.get(), b = in.get();
+                x += 2;
                 //std::cout<<"b:"<<(int)a<<' '<<(int)b<<std::endl;
                 int chunk = 0x8000;
                 int block = ( a << 8 ) | b;
@@ -120,13 +38,19 @@ namespace
                 {
                     chunk = ( b << 8 ) | in.get();
                     block = ( in.get() << 8 ) | in.get();
+                    x += 3;
                 }
                 
+                
+                if ( chunk == 0 || block == 0 )
+                    break;
+                
                 //std::cout<<"C&B "<<chunk<<' '<<block<<std::endl;
-                auto stream = lzxd_init( &mySystem, &inf, &outf, 16, 0, block, chunk, false );
-                int err = lzxd_decompress( stream, chunk );
+                int err = dec.Decompress( in, block, out, chunk );
+                if ( err != 0 )
+                    break;
+                x += block;
                 //std::cout << "Finished: " << err << ' ' << stream->error << std::endl;
-                //lzxd_free( stream ); 
             }
         }
         catch ( std::exception& e )
